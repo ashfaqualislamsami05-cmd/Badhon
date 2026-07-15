@@ -1,5 +1,4 @@
-                
-     <!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
@@ -9,9 +8,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CORE DATABASE ENGINE: Firebase Scripts -->
+    <!-- CORE DATABASE & STORAGE ENGINES -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
 
@@ -102,7 +102,7 @@
     <!-- Logic Engine -->
     <script>
         // -------------------------------------------------------------------------
-        // ⚠️ REPLACE THIS CONFIGURATION BLOCK WITH YOUR PERSONAL FIREBASE SETUP DETAILS
+        // ⚠️ REMEMBER TO PASTE YOUR PERSONAL FIREBASE CONFIGURATION OBJECT HERE
         // -------------------------------------------------------------------------
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
@@ -114,9 +114,10 @@
             appId: "YOUR_APP_ID"
         };
         
-        // Initialize Core Firebase Cloud Modules
+        // Initialize Firebase Engines
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        const storage = firebase.storage(); // New high-speed cloud file asset engine
 
         let currentLang = 'bn';
 
@@ -162,7 +163,6 @@
             document.getElementById('lbl-desc').innerText = t.lblDesc;
             document.getElementById('btn-submit').innerText = t.btnSubmit;
 
-            // Live refresh text structures dynamically
             document.querySelectorAll('.data-disease-label').forEach(el => el.innerText = t.diseaseLabel);
             document.querySelectorAll('.data-stage-label').forEach(el => el.innerText = t.stageLabel);
             document.querySelectorAll('.data-contact-label').forEach(el => el.innerText = t.contactLabel);
@@ -175,7 +175,7 @@
             document.getElementById('fund-form').reset();
         }
 
-        // DATABASE LISTENER: Pulls posts automatically, sorted newest first
+        // DATABASE APPFEDEEER: Loads posts instantly via lightweight URL references
         database.ref('posts').orderByChild('timestamp').on('value', (snapshot) => {
             const container = document.getElementById('posts-container');
             container.innerHTML = ''; 
@@ -190,7 +190,6 @@
                 postList.push(childSnapshot.val());
             });
 
-            // Reverse list array data to show Newest on Top perfectly
             postList.reverse().forEach((data) => {
                 const t = translations[currentLang];
                 const percentage = Math.min((data.raised / data.goal) * 100, 100).toFixed(1);
@@ -200,11 +199,15 @@
                 let docsHTML = '';
                 if (data.documents && data.documents.length > 0) {
                     docsHTML = `<div class="mb-4"><p class="text-xs font-semibold text-gray-500 mb-2 data-docs-heading">${t.docsHeading}</p><div class="grid grid-cols-2 gap-2">`;
-                    data.documents.forEach((docString) => {
-                        if (docString.startsWith('data:image/')) {
-                            docsHTML += `<a href="${docString}" target="_blank"><img src="${docString}" class="rounded-lg h-28 w-full object-cover border border-gray-200 shadow-sm" alt="Document"></a>`;
-                        } else if (docString.startsWith('data:video/')) {
-                            docsHTML += `<video src="${docString}" controls class="rounded-lg h-28 w-full object-cover border border-gray-200 shadow-sm"></video>`;
+                    data.documents.forEach((doc) => {
+                        // Intelligent Fallback: Check if structural data format is direct text string or nested object
+                        const docUrl = doc.url || doc;
+                        const docType = doc.type || (docUrl.includes('video') || docUrl.startsWith('data:video') ? 'video/' : 'image/');
+
+                        if (docType.startsWith('image/')) {
+                            docsHTML += `<a href="${docUrl}" target="_blank"><img src="${docUrl}" class="rounded-lg h-28 w-full object-cover border border-gray-200 shadow-sm hover:opacity-90 transition" alt="Document"></a>`;
+                        } else if (docType.startsWith('video/')) {
+                            docsHTML += `<video src="${docUrl}" controls class="rounded-lg h-28 w-full object-cover border border-gray-200 shadow-sm"></video>`;
                         }
                     });
                     docsHTML += `</div></div>`;
@@ -247,13 +250,13 @@
             });
         });
 
-        // ACTION: Handles uploads, packs to Base64 arrays, pushes directly to Live Cloud Node
+        // HIGH-SPEED MULTI-THREAD UPLOADER ENGINE
         async function handleFormSubmit(event) {
             event.preventDefault();
             
             const submitBtn = document.getElementById('btn-submit');
             submitBtn.disabled = true;
-            submitBtn.innerText = "Uploading to Cloud...";
+            submitBtn.innerText = "Uploading files...";
 
             const name = document.getElementById('form-name').value;
             const disease = document.getElementById('form-disease').value;
@@ -266,41 +269,47 @@
             const docsInput = document.getElementById('form-docs');
             
             let fileArray = [];
-            if (docsInput.files && docsInput.files.length > 0) {
-                for (let i = 0; i < docsInput.files.length; i++) {
-                    const file = docsInput.files[i];
-                    const base64String = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => resolve(e.target.result);
-                        reader.readAsDataURL(file);
-                    });
-                    fileArray.push(base64String);
+            try {
+                if (docsInput.files && docsInput.files.length > 0) {
+                    for (let i = 0; i < docsInput.files.length; i++) {
+                        const file = docsInput.files[i];
+                        
+                        // Create a secure unique name tag path inside the filing cabinet
+                        const uniqueFileName = 'medical_docs/' + Date.now() + '_' + file.name;
+                        const storageRef = storage.ref().child(uniqueFileName);
+                        
+                        // Push binary data up directly (Super Fast)
+                        submitBtn.innerText = `Uploading File (${i+1}/${docsInput.files.length})...`;
+                        const uploadSnapshot = await storageRef.put(file);
+                        
+                        // Capture public URL links references
+                        const downloadUrl = await uploadSnapshot.ref.getDownloadURL();
+                        
+                        fileArray.push({
+                            url: downloadUrl,
+                            type: file.type
+                        });
+                    }
                 }
+
+                submitBtn.innerText = "Saving Post details...";
+                const newPostData = {
+                    name: name, disease: disease, stage: stage, goal: goal,
+                    raised: raised, payment: payment, phone: phone,
+                    description: description, documents: fileArray, timestamp: Date.now()
+                };
+
+                // Push small text footprint map profile directly to DB
+                await database.ref('posts').push(newPostData);
+                
+                submitBtn.disabled = false;
+                closeModal();
+
+            } catch (error) {
+                alert("Upload Error: " + error.message);
+                submitBtn.disabled = false;
+                submitBtn.innerText = "পোস্ট করুন (Submit Post)";
             }
-
-            const newPostData = {
-                name: name,
-                disease: disease,
-                stage: stage,
-                goal: goal,
-                raised: raised,
-                payment: payment,
-                phone: phone,
-                description: description,
-                documents: fileArray,
-                timestamp: Date.now() // Used for chronological order
-            };
-
-            // PUSH DATA UP TO LIVE CLOUD NODE
-            database.ref('posts').push(newPostData)
-                .then(() => {
-                    submitBtn.disabled = false;
-                    closeModal();
-                })
-                .catch((error) => {
-                    alert("Database Error: " + error.message);
-                    submitBtn.disabled = false;
-                });
         }
     </script>
 
@@ -310,6 +319,6 @@
     </style>
 </body>
 </html>
-                                    }
-            
-             
+
+                                
+                  
