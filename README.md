@@ -1,12 +1,17 @@
-<!DOCTYPE html>
+                
+     <!DOCTYPE html>
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>বাঁধন - Badhon Foundation</title>
-    <!-- Tailwind CSS for modern styling -->
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CORE DATABASE ENGINE: Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
 
@@ -22,7 +27,6 @@
 
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8 flex-grow max-w-4xl">
-        <!-- Floating Add Button for Mobile/Desktop -->
         <div class="flex justify-between items-center mb-6">
             <h2 id="feed-title" class="text-2xl font-bold text-gray-700">সাম্প্রতিক আবেদনসমূহ (Recent Appeals)</h2>
             <button onclick="openModal()" class="bg-teal-600 hover:bg-teal-700 text-white rounded-full p-4 shadow-lg flex items-center justify-center transition transform hover:scale-105" title="Add New Request">
@@ -30,42 +34,15 @@
             </button>
         </div>
 
-        <!-- Dynamic Feed Container (Newest First) -->
+        <!-- Global Live Feed Container -->
         <div id="posts-container" class="space-y-6">
-            <!-- Demo Post (Sample data to show how it looks) -->
-            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100 transition hover:shadow-lg">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-900">রাকিবুল হাসান (Rakibul Hasan)</h3>
-                        <p class="text-sm text-teal-600 font-medium mt-1"><span class="data-disease-label">রোগ:</span> ব্লাড ক্যান্সার (Blood Cancer) | <span class="data-stage-label">ধাপ:</span> Stage 2</p>
-                    </div>
-                    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Just Now</span>
-                </div>
-                
-                <p class="text-gray-700 text-sm mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100">ঢাকা বিশ্ববিদ্যালয়ের একজন মেধাবী ছাত্র। জরুরি চিকিৎসার জন্য আর্থিক সহায়তা প্রয়োজন। চিকিৎসকদের পরামর্শ অনুযায়ী দ্রুত থেরাপি শুরু করতে হবে। (A brilliant student of DU needing urgent financial support for medical therapy.)</p>
-                
-                <!-- Progress Bar -->
-                <div class="mb-4">
-                    <div class="flex justify-between text-xs font-semibold text-gray-500 mb-1">
-                        <span>Raised: ৳৫০,০০০</span>
-                        <span>Goal: ৳৫,০০,০০০</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                        <div class="bg-teal-500 h-2.5 rounded-full" style="width: 10%"></div>
-                    </div>
-                </div>
-
-                <div class="bg-gray-50 p-3 rounded-lg text-sm grid grid-cols-1 md:grid-cols-2 gap-2 border border-gray-100">
-                    <div><strong>bKash/Nagad:</strong> 017XXXXXXXX</div>
-                    <div><strong>Bank:</strong> DBBL, Acc: 123.XXX.XXXX</div>
-                </div>
-            </div>
+            <div id="loading-text" class="text-center text-gray-500 py-10 animate-pulse">লোড হচ্ছে (Loading database appeals...)</div>
         </div>
     </main>
 
-    <!-- Add Post Modal (Hidden by default) -->
+    <!-- Add Post Modal -->
     <div id="post-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 relative shadow-2xl animate-fade-in">
+        <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 relative shadow-2xl">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -102,16 +79,15 @@
                 </div>
                 <div>
                     <label id="lbl-payment" class="block text-sm font-semibold text-gray-600 mb-1">পেমেন্ট মাধ্যম (bKash/Nagad/Bank details)</label>
-                    <textarea id="form-payment" required rows="2" placeholder="e.g., bKash: 018XXXXXXXX, Bank Account details..." class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+                    <textarea id="form-payment" required rows="2" placeholder="e.g., bKash: 018XXXXXXXX..." class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
                 </div>
                 <div>
                     <label id="lbl-phone" class="block text-sm font-semibold text-gray-600 mb-1">মোবাইল নাম্বার (Contact Number)</label>
                     <input type="tel" id="form-phone" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
                 </div>
-                <!-- New Description / বিবিধ Options Area Below Phone Number -->
                 <div>
                     <label id="lbl-desc" class="block text-sm font-semibold text-gray-600 mb-1">বিবিধ (Description)</label>
-                    <textarea id="form-desc" rows="3" placeholder="..." class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+                    <textarea id="form-desc" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
                 </div>
                 <button type="submit" id="btn-submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-lg shadow transition duration-200">পোস্ট করুন (Submit Post)</button>
             </form>
@@ -120,55 +96,48 @@
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-gray-400 py-4 text-center text-sm border-t border-gray-700 mt-10">
-        <p>&copy; 2026 <span id="footer-logo">固定 বাঁধন ফাউন্ডেশন</span>. All Rights Reserved.</p>
+        <p>&copy; 2026 <span id="footer-logo">বাঁধন ফাউন্ডেশন</span>. All Rights Reserved.</p>
     </footer>
 
-    <!-- Translation & Interface JavaScript Logic -->
+    <!-- Logic Engine -->
     <script>
+        // -------------------------------------------------------------------------
+        // ⚠️ REPLACE THIS CONFIGURATION BLOCK WITH YOUR PERSONAL FIREBASE SETUP DETAILS
+        // -------------------------------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // Initialize Core Firebase Cloud Modules
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         let currentLang = 'bn';
 
         const translations = {
             en: {
-                logo: "Badhon",
-                feedTitle: "Recent Funding Appeals",
-                modalHeading: "Apply for Financial Fund",
-                lblName: "Patient / Requester Name",
-                lblDisease: "Disease / Core Need",
-                lblStage: "Current Condition / Stage",
-                lblGoal: "Target Amount Needed (৳)",
-                lblRaised: "Amount Raised So Far (৳)",
-                lblDocs: "Medical Verification Documents (Photos/Videos)",
-                lblPayment: "Payment Methods (bKash, Nagad, Bank Details)",
-                lblPhone: "Mobile Number",
-                lblDesc: "Description",
-                btnSubmit: "Publish Post",
-                langBtn: "বাংলা",
-                timeText: "Just Now",
-                diseaseLabel: "Disease:",
-                stageLabel: "Stage:",
-                contactLabel: "Contact:",
-                docsHeading: "Medical Documents:"
+                logo: "Badhon", feedTitle: "Recent Funding Appeals", modalHeading: "Apply for Financial Fund",
+                lblName: "Patient Name", lblDisease: "Disease / Need", lblStage: "Current Stage",
+                lblGoal: "Target Amount Needed (৳)", lblRaised: "Amount Raised (৳)",
+                lblDocs: "Medical Documents (Photos/Videos)", lblPayment: "Payment Methods (bKash/Nagad/Bank)",
+                lblPhone: "Mobile Number", lblDesc: "Description", btnSubmit: "Publish Post",
+                langBtn: "বাংলা", timeText: "Live Appeal", diseaseLabel: "Disease:", stageLabel: "Stage:",
+                contactLabel: "Contact:", docsHeading: "Medical Documents:"
             },
             bn: {
-                logo: "বাঁধন",
-                feedTitle: "সাম্প্রতিক আবেদনসমূহ",
-                modalHeading: "সাহায্যের আবেদন করুন",
-                lblName: "রোগীর নাম (Patient's Name)",
-                lblDisease: "রোগ/প্রয়োজন (Disease/Need)",
-                lblStage: "বর্তমান অবস্থা/ধাপ (Current Stage)",
-                lblGoal: "টাকার পরিমাণ (Goal Amount ৳)",
-                lblRaised: "সংগৃহীত টাকা (Raised Amount ৳)",
-                lblDocs: "মেডিকেল ডকুমেন্টস (Upload Photos/Videos)",
-                lblPayment: "পেমেন্ট মাধ্যম (bKash/Nagad/Bank details)",
-                lblPhone: "মোবাইল নাম্বার (Contact Number)",
-                lblDesc: "বিবিধ",
-                btnSubmit: "পোস্ট করুন",
-                langBtn: "English",
-                timeText: "এইমাত্র",
-                diseaseLabel: "রোগ:",
-                stageLabel: "ধাপ:",
-                contactLabel: "যোগাযোগ:",
-                docsHeading: "মেডিকেল ডকুমেন্টস:"
+                logo: "বাঁধন", feedTitle: "সাম্প্রতিক আবেদনসমূহ", modalHeading: "সাহায্যের আবেদন করুন",
+                lblName: "রোগীর নাম (Patient's Name)", lblDisease: "রোগ/প্রয়োজন (Disease/Need)", lblStage: "বর্তমান অবস্থা/ধাপ (Current Stage)",
+                lblGoal: "টাকার পরিমাণ (Goal Amount ৳)", lblRaised: "সংগৃহীত টাকা (Raised Amount ৳)",
+                lblDocs: "মেডিকেল ডকুমেন্টস (Upload Photos/Videos)", lblPayment: "পেমেন্ট মাধ্যম (bKash/Nagad/Bank details)",
+                lblPhone: "মোবাইল নাম্বার (Contact Number)", lblDesc: "বিবিধ", btnSubmit: "পোস্ট করুন",
+                langBtn: "English", timeText: "চলতি আবেদন", diseaseLabel: "রোগ:", stageLabel: "ধাপ:",
+                contactLabel: "যোগাযোগ:", docsHeading: "মেডিকেল ডকুমেন্টস:"
             }
         };
 
@@ -181,7 +150,6 @@
             document.getElementById('feed-title').innerText = t.feedTitle;
             document.getElementById('lang-toggle').innerText = t.langBtn;
             
-            // Modal Elements Translation
             document.getElementById('modal-heading').innerText = t.modalHeading;
             document.getElementById('lbl-name').innerText = t.lblName;
             document.getElementById('lbl-disease').innerText = t.lblDisease;
@@ -194,26 +162,99 @@
             document.getElementById('lbl-desc').innerText = t.lblDesc;
             document.getElementById('btn-submit').innerText = t.btnSubmit;
 
-            // Card Text Elements Live Dynamic Update
+            // Live refresh text structures dynamically
             document.querySelectorAll('.data-disease-label').forEach(el => el.innerText = t.diseaseLabel);
             document.querySelectorAll('.data-stage-label').forEach(el => el.innerText = t.stageLabel);
             document.querySelectorAll('.data-contact-label').forEach(el => el.innerText = t.contactLabel);
             document.querySelectorAll('.data-docs-heading').forEach(el => el.innerText = t.docsHeading);
         }
 
-        function openModal() {
-            document.getElementById('post-modal').classList.remove('hidden');
-        }
-
+        function openModal() { document.getElementById('post-modal').classList.remove('hidden'); }
         function closeModal() {
             document.getElementById('post-modal').classList.add('hidden');
             document.getElementById('fund-form').reset();
         }
 
-        function handleFormSubmit(event) {
+        // DATABASE LISTENER: Pulls posts automatically, sorted newest first
+        database.ref('posts').orderByChild('timestamp').on('value', (snapshot) => {
+            const container = document.getElementById('posts-container');
+            container.innerHTML = ''; 
+            
+            if (!snapshot.exists()) {
+                container.innerHTML = `<div class="text-center text-gray-400 py-10">কোনো পোস্ট পাওয়া যায়নি (No active posts found)</div>`;
+                return;
+            }
+
+            let postList = [];
+            snapshot.forEach((childSnapshot) => {
+                postList.push(childSnapshot.val());
+            });
+
+            // Reverse list array data to show Newest on Top perfectly
+            postList.reverse().forEach((data) => {
+                const t = translations[currentLang];
+                const percentage = Math.min((data.raised / data.goal) * 100, 100).toFixed(1);
+
+                let descriptionHTML = data.description ? `<p class="text-gray-700 text-sm mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100 whitespace-pre-line">${data.description}</p>` : '';
+                
+                let docsHTML = '';
+                if (data.documents && data.documents.length > 0) {
+                    docsHTML = `<div class="mb-4"><p class="text-xs font-semibold text-gray-500 mb-2 data-docs-heading">${t.docsHeading}</p><div class="grid grid-cols-2 gap-2">`;
+                    data.documents.forEach((docString) => {
+                        if (docString.startsWith('data:image/')) {
+                            docsHTML += `<a href="${docString}" target="_blank"><img src="${docString}" class="rounded-lg h-28 w-full object-cover border border-gray-200 shadow-sm" alt="Document"></a>`;
+                        } else if (docString.startsWith('data:video/')) {
+                            docsHTML += `<video src="${docString}" controls class="rounded-lg h-28 w-full object-cover border border-gray-200 shadow-sm"></video>`;
+                        }
+                    });
+                    docsHTML += `</div></div>`;
+                }
+
+                const postHTML = `
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100 transition hover:shadow-lg animate-fade-in">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">${data.name}</h3>
+                                <p class="text-sm text-teal-600 font-medium mt-1">
+                                    <span class="data-disease-label">${t.diseaseLabel}</span> ${data.disease} | 
+                                    <span class="data-stage-label">${t.stageLabel}</span> ${data.stage}
+                                </p>
+                            </div>
+                            <span class="text-xs text-teal-600 font-semibold bg-teal-50 px-2 py-1 rounded">${t.timeText}</span>
+                        </div>
+                        
+                        ${descriptionHTML}
+                        
+                        <p class="text-gray-600 text-sm mb-4"><strong class="data-contact-label">${t.contactLabel}</strong> ${data.phone}</p>
+                        
+                        <div class="mb-4">
+                            <div class="flex justify-between text-xs font-semibold text-gray-500 mb-1">
+                                <span>Raised: ৳${Number(data.raised).toLocaleString()}</span>
+                                <span>Goal: ৳${Number(data.goal).toLocaleString()}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-teal-500 h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+
+                        ${docsHTML}
+
+                        <div class="bg-gray-50 p-3 rounded-lg text-sm border border-gray-100 whitespace-pre-line">
+                            <strong>${currentLang === 'en' ? 'Payment Methods:' : 'পেমেন্ট মাধ্যম:'}</strong>\n${data.payment}
+                        </div>
+                    </div>`;
+                container.insertAdjacentHTML('beforeend', postHTML);
+            });
+        });
+
+        // ACTION: Handles uploads, packs to Base64 arrays, pushes directly to Live Cloud Node
+        async function handleFormSubmit(event) {
             event.preventDefault();
             
-            // Collect Form Values
+            const submitBtn = document.getElementById('btn-submit');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Uploading to Cloud...";
+
             const name = document.getElementById('form-name').value;
             const disease = document.getElementById('form-disease').value;
             const stage = document.getElementById('form-stage').value || 'N/A';
@@ -224,100 +265,51 @@
             const description = document.getElementById('form-desc').value;
             const docsInput = document.getElementById('form-docs');
             
-            const t = translations[currentLang];
-
-            // Core Logic for Processing Verification Previews
-            let docsHTML = '';
+            let fileArray = [];
             if (docsInput.files && docsInput.files.length > 0) {
-                docsHTML = `
-                    <div class="mb-4">
-                        <p class="text-xs font-semibold text-gray-500 mb-2 data-docs-heading">${t.docsHeading}</p>
-                        <div class="grid grid-cols-2 gap-2">
-                `;
-                
                 for (let i = 0; i < docsInput.files.length; i++) {
                     const file = docsInput.files[i];
-                    const fileUrl = URL.createObjectURL(file);
-                    
-                    if (file.type.startsWith('image/')) {
-                        docsHTML += `
-                            <a href="${fileUrl}" target="_blank" title="Click to view full image">
-                                <img src="${fileUrl}" class="rounded-lg h-28 w-full object-cover border border-gray-200 hover:opacity-90 transition shadow-sm" alt="Document">
-                            </a>`;
-                    } else if (file.type.startsWith('video/')) {
-                        docsHTML += `
-                            <video src="${fileUrl}" controls class="rounded-lg h-28 w-full object-cover border border-gray-200 shadow-sm"></video>`;
-                    }
+                    const base64String = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+                    fileArray.push(base64String);
                 }
-                docsHTML += `</div></div>`;
-            }
-            
-            // Calculate Progress Status Layout
-            const percentage = Math.min((raised / goal) * 100, 100).toFixed(1);
-
-            // Conditional Description Component Render
-            let descriptionHTML = '';
-            if(description.trim() !== "") {
-                descriptionHTML = `
-                    <p class="text-gray-700 text-sm mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100 whitespace-pre-line">${description}</p>
-                `;
             }
 
-            // Construct new clean template structure layout
-            const postHTML = `
-                <div class="bg-white rounded-xl shadow-md p-6 border border-teal-100 transition hover:shadow-lg animate-fade-in">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-900">${name}</h3>
-                            <p class="text-sm text-teal-600 font-medium mt-1">
-                                <span class="data-disease-label">${t.diseaseLabel}</span> ${disease} | 
-                                <span class="data-stage-label">${t.stageLabel}</span> ${stage}
-                            </p>
-                        </div>
-                        <span class="text-xs text-teal-600 font-semibold bg-teal-50 px-2 py-1 rounded">${t.timeText}</span>
-                    </div>
-                    
-                    <!-- Main Text Box Area / Description Rendering -->
-                    ${descriptionHTML}
-                    
-                    <p class="text-gray-600 text-sm mb-4"><strong class="data-contact-label">${t.contactLabel}</strong> ${phone}</p>
-                    
-                    <!-- Progress Bar Component -->
-                    <div class="mb-4">
-                        <div class="flex justify-between text-xs font-semibold text-gray-500 mb-1">
-                            <span>Raised: ৳${raised.toLocaleString()}</span>
-                            <span>Goal: ৳${goal.toLocaleString()}</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5">
-                            <div class="bg-teal-500 h-2.5 rounded-full" style="width: ${percentage}%"></div>
-                        </div>
-                    </div>
+            const newPostData = {
+                name: name,
+                disease: disease,
+                stage: stage,
+                goal: goal,
+                raised: raised,
+                payment: payment,
+                phone: phone,
+                description: description,
+                documents: fileArray,
+                timestamp: Date.now() // Used for chronological order
+            };
 
-                    <!-- Medical Docs Content Component Layout -->
-                    ${docsHTML}
-
-                    <div class="bg-gray-50 p-3 rounded-lg text-sm border border-gray-100 whitespace-pre-line">
-                        <strong>${currentLang === 'en' ? 'Payment Methods:' : 'পেমেন্ট মাধ্যম:'}</strong>\n${payment}
-                    </div>
-                </div>
-            `;
-
-            // Enforce Chronological Feed Alignment (Insert right at the top)
-            const container = document.getElementById('posts-container');
-            container.insertAdjacentHTML('afterbegin', postHTML);
-
-            closeModal();
+            // PUSH DATA UP TO LIVE CLOUD NODE
+            database.ref('posts').push(newPostData)
+                .then(() => {
+                    submitBtn.disabled = false;
+                    closeModal();
+                })
+                .catch((error) => {
+                    alert("Database Error: " + error.message);
+                    submitBtn.disabled = false;
+                });
         }
     </script>
 
     <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     </style>
 </body>
 </html>
+                                    }
+            
+             
